@@ -6,29 +6,35 @@ import os
 load_dotenv()
 
 def fetch_data(url):
-    access_token = os.getenv('ACCESS_TOKEN')
-    headers = {
-        'Authorization': 'Token {}'.format(access_token)
-    }
-    resp = requests.get(url, headers=headers)
-    repos = resp.json()
+    file = 'repos.csv'
+    columns = ['Owner ID', 'Owner Name', 'Owner Email', 'Repository ID', 'Repository Name', 'Status', 'Stars Count']
 
-    # repos = data['items']
-    print("\nSelected information about each repository:")
-    for repo in repos:
-        print('Owner ID:', repo['owner']['id'])
-        print('Owner Name:', repo['owner']['login'])
-        try:
-            print('Owner email:', repo['owner']['email'])
-        except:
-            print("Owner email: None")
-        print('Repository Name:', repo['name'])
-        print('Repository ID:', repo['id'])
-        if(repo['private']):
-            print('Status: Private')
-        else:
-            print('Status: Public')
-        print('Stars:', repo['stargazers_count'])
-        print("\n\n")
+    with open(file, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=columns)
+        writer.writeheader()
+    
+        access_token = os.getenv('ACCESS_TOKEN')
+        headers = {
+            'Authorization': 'Token {}'.format(access_token)
+        }
+        resp = requests.get(url, headers=headers)
+        repos = resp.json()
+
+        # repos = data['items']
+        print("\nSelected information about each repository:")
+        for repo in repos:
+            try:
+                email = repo['owner']['email']
+            except:
+                email = ''
+            writer.writerow({
+                'Owner ID': repo['owner']['id'],
+                'Owner Name': repo['owner']['login'],
+                'Owner Email': email,
+                'Repository ID': repo['id'],
+                'Repository Name': repo['name'],
+                'Status': 'Private' if repo['private'] else 'Public',
+                'Stars Count': repo['stargazers_count']
+            })
 
 fetch_data('https://api.github.com/user/repos')
