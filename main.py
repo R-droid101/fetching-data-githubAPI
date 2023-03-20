@@ -5,15 +5,33 @@ import os
 
 load_dotenv()
 
-f = open('repos.csv', "w+")
-f.close()
-flag = False
+class GitHubScrapper:
+    def __init__(self, csv_file):
+        self.csv_file = csv_file
+        self.columns = ['Owner ID', 'Owner Name', 'Owner Email', 'Repository ID', 'Repository Name', 'Status', 'Stars Count']
+        self.flag = False
 
-def fetch_data(url, flag):
-    file = 'repos.csv'
-    columns = ['Owner ID', 'Owner Name', 'Owner Email', 'Repository ID', 'Repository Name', 'Status', 'Stars Count']
-    with open(file, 'a', newline='') as csvfile:
-          
+    def write_to_csv(self, repos):
+        with open(self.csv_file, 'a', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=self.columns)
+            if csvfile.tell() == 0:
+                writer.writeheader()
+            for repo in repos:
+                try:
+                    email = repo['owner']['email']
+                except:
+                    email = ''
+                writer.writerow({
+                    'Owner ID': repo['owner']['id'],
+                    'Owner Name': repo['owner']['login'],
+                    'Owner Email': email,
+                    'Repository ID': repo['id'],
+                    'Repository Name': repo['name'],
+                    'Status': 'Private' if repo['private'] else 'Public',
+                    'Stars Count': repo['stargazers_count']
+                })
+
+    def fetch_data(self, url):
         access_token = os.getenv('ACCESS_TOKEN')
         headers = {
             'Authorization': 'Token {}'.format(access_token)
@@ -21,32 +39,21 @@ def fetch_data(url, flag):
 
         resp = requests.get(url, headers=headers)
         repos = resp.json()
-        # print(repos)
         if(len(repos) == 0):
-            flag = True
+            self.flag = True
             print("No more repositories to fetch")
-            return flag
+            return
         print("\n adding to csv:")
-        writer = csv.DictWriter(csvfile, fieldnames=columns)
-        writer.writeheader()
-        for repo in repos:
-            try:
-                email = repo['owner']['email']
-            except:
-                email = ''
-            writer.writerow({
-                'Owner ID': repo['owner']['id'],
-                'Owner Name': repo['owner']['login'],
-                'Owner Email': email,
-                'Repository ID': repo['id'],
-                'Repository Name': repo['name'],
-                'Status': 'Private' if repo['private'] else 'Public',
-                'Stars Count': repo['stargazers_count']
-            })
-    return flag
-for i in range(1, 10):
-    if(flag == True):
-        break
-    else:
-        flag = fetch_data('https://api.github.com/user/repos?page={}&per_page=100'.format(i), flag)
-# fetch_data('https://api.github.com/user/repos?page=&per_page=100')
+        self.write_to_csv(repos)
+
+    def scrape_repos(self):
+        f = open('repos.csv', 'w+')
+        f.close()
+        for i in range(1, 10):
+            if(self.flag == True):
+                break
+            else:
+                self.fetch_data('https://api.github.com/user/repos?page={}&per_page=100'.format(i))
+
+repo_fetch = GitHubScrapper('repos.csv')
+repo_fetch.scrape_repos()
