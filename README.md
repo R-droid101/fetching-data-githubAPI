@@ -17,6 +17,11 @@ pip install -r requirements.txt
 ```
 
 ### Directions to run
+Create a ```.env``` file. Create a Personal Access Token from the GitHub developer settings.
+Add the following information in the ```.env``` file:
+```bash
+ACCESS_TOKEN = <YOUR ACCESS TOKEN FROM GITHUB>
+```
 Run the following command in the terminal to execute the program -
 ```bash
 python main.py
